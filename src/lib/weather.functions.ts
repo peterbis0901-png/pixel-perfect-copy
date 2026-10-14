@@ -9,8 +9,8 @@ export type CityWeather = {
 
 const mock = (): CityWeather[] =>
   (Object.keys(CITIES) as (keyof typeof CITIES)[]).map((id, i) => ({
-    id, temp: 28 - i, humidity: 72 + i * 5, code: [2, 3, 1][i],
-    daily: Array.from({ length: 4 }, (_, d) => ({ date: `D${d + 1}`, max: 31 - i, min: 24 - i, code: [1, 2, 61, 3][d] })),
+    id, temp: 28 - i, humidity: 72 + i * 5, code: [2, 3, 1][i] ?? 1,
+    daily: Array.from({ length: 4 }, (_, d) => ({ date: `D${d + 1}`, max: 31 - i, min: 24 - i, code: [1, 2, 61, 3][d] ?? 1 })),
   }));
 
 /** Live weather from Open-Meteo (no key). Falls back to sample data on failure. */

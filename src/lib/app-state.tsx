@@ -101,7 +101,7 @@ export function useProgress() {
   const times = EVENTS.map((ev) => eventTime(start, ev));
   let idx = -1;
   times.forEach((t, i) => { if (t <= now) idx = i; });
-  const first = times[0], last = times[times.length - 1];
+  const first = times[0]!, last = times[times.length - 1]!;
   const pct = Math.min(100, Math.max(0, ((now - first) / (last - first)) * 100));
   const assemblies = EVENTS.map((ev, i) => ({ ev, at: times[i]! })).filter((x) => x.ev.assembly);
   const nextAssembly = assemblies.find((a) => a.at > now);

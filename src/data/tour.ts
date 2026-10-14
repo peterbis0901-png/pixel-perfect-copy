@@ -40,8 +40,8 @@ export type TourEvent = {
   time: string; // HH:MM Vietnam time
   type: EventType;
   title: L;
-  stopId?: string;
-  assembly?: L; // set when this is a group meeting time
+  stopId?: string | undefined;
+  assembly?: L | undefined; // set when this is a group meeting time
 };
 
 const e = (day: TourEvent["day"], time: string, type: EventType, en: string, vi: string, stopId?: string, assembly?: L): TourEvent => ({ day, time, type, title: { en, vi }, stopId, assembly });
@@ -104,8 +104,8 @@ export const GUIDE: GuideItem[] = [
 
 /** Absolute timestamp of an event given the tour's first day (YYYY-MM-DD). Vietnam is UTC+7. */
 export function eventTime(start: string, ev: Pick<TourEvent, "day" | "time">) {
-  const [y, m, d] = start.split("-").map(Number);
-  const [hh, mm] = ev.time.split(":").map(Number);
+  const [y = 2026, m = 1, d = 1] = start.split("-").map(Number);
+  const [hh = 0, mm = 0] = ev.time.split(":").map(Number);
   return Date.UTC(y, m - 1, d + ev.day - 1, hh - 7, mm);
 }
 
