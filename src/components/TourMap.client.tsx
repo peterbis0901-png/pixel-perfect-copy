@@ -23,7 +23,7 @@ export default function TourMap({ currentStopId, selectedId, onSelect, labels }:
     // Ground route per day (skip flight legs, drawn dashed separately)
     const isFlight = (a: string, b: string) => FLIGHT_LEGS.some(([x, y]) => x === a && y === b);
     for (let i = 1; i < STOPS.length; i++) {
-      const a = STOPS[i - 1], b = STOPS[i];
+      const a = STOPS[i - 1]!, b = STOPS[i]!;
       const flight = isFlight(a.id, b.id);
       L.polyline([[a.lat, a.lng], [b.lat, b.lng]], { color: color(b.day), weight: flight ? 2 : 4, dashArray: flight ? "6 8" : undefined, opacity: 0.9 }).addTo(m);
     }

@@ -25,7 +25,7 @@ function Alerts() {
   useEffect(() => { if (typeof Notification !== "undefined") setPerm(Notification.permission); }, []);
 
   const enable = async () => {
-    if (typeof Notification === "undefined") return toast.error("Notifications not supported");
+    if (typeof Notification === "undefined") { toast.error("Notifications not supported"); return; }
     const p = await Notification.requestPermission();
     setPerm(p);
     if (p === "granted") new Notification(t("notifOn"), { body: "Di Sản Bắc Bộ" });
