@@ -16,7 +16,7 @@ export default function TourMap({ currentStopId, selectedId, onSelect, labels }:
     if (!el.current || map.current) return;
     const m = L.map(el.current, { zoomControl: true }).setView([21.0, 106.2], 8);
     map.current = m;
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", { attribution: "© OpenStreetMap © CARTO", maxZoom: 19 }).addTo(m);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap contributors", maxZoom: 19 }).addTo(m);
     const css = getComputedStyle(document.documentElement);
     const color = (d: number) => css.getPropertyValue(`--day-${d}`).trim() || "#b33";
 
@@ -28,7 +28,7 @@ export default function TourMap({ currentStopId, selectedId, onSelect, labels }:
       L.polyline([[a.lat, a.lng], [b.lat, b.lng]], { color: color(b.day), weight: flight ? 2 : 4, dashArray: flight ? "6 8" : undefined, opacity: 0.9 }).addTo(m);
     }
     STOPS.forEach((s, i) => {
-      const icon = L.divIcon({ className: "", html: `<div class="tour-pin" style="--c:${color(s.day)}">${i + 1}</div>`, iconSize: [30, 30], iconAnchor: [15, 15] });
+      const icon = L.divIcon({ className: "", html: `<div class="tour-pin" style="--c:${color(s.day)}"><span>${i + 1}</span></div>`, iconSize: [30, 30], iconAnchor: [15, 15] });
       const mk = L.marker([s.lat, s.lng], { icon, title: labels(s) }).addTo(m).on("click", () => onSelect(s));
       mk.bindTooltip(labels(s), { direction: "top", offset: [0, -14] });
       markers.current[s.id] = mk;
