@@ -4,7 +4,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { FLIGHT_LEGS, STOPS, stopById, type Stop } from "@/data/tour";
 
-type Props = { currentStopId?: string; selectedId?: string; onSelect: (s: Stop) => void; labels: (s: Stop) => string };
+type Props = { currentStopId?: string | undefined; selectedId?: string | undefined; onSelect: (s: Stop) => void; labels: (s: Stop) => string };
 
 export default function TourMap({ currentStopId, selectedId, onSelect, labels }: Props) {
   const el = useRef<HTMLDivElement>(null);

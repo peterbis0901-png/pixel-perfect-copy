@@ -43,7 +43,7 @@ function Alerts() {
       <NextAssembly />
       <ul className="grid gap-3 md:grid-cols-2">
         {assemblies.map(({ ev, at }, i) => {
-          const ms = at - now, past = ms <= 0, soon = !past && ms < 30 * 60e3;
+          const ms = (at ?? 0) - now, past = ms <= 0, soon = !past && ms < 30 * 60e3;
           return (
             <li key={i} className={`card-paper flex items-center gap-4 p-4 ${past ? "opacity-50" : ""} ${soon ? "ring-2 ring-destructive" : ""}`}>
               <div className="text-center">
