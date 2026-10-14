@@ -1,0 +1,154 @@
+// Global app state: language, theme, live/simulated clock, and assembly alerts.
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { toast } from "sonner";
+import { EVENTS, eventTime, type L, type Lang } from "@/data/tour";
+
+const UI = {
+  overview: { en: "Overview", vi: "Tổng quan" },
+  map: { en: "Map", vi: "Bản đồ" },
+  itinerary: { en: "Itinerary", vi: "Lịch trình" },
+  guide: { en: "Guide", vi: "Thuyết minh" },
+  alerts: { en: "Meetups", vi: "Tập trung" },
+  day: { en: "Day", vi: "Ngày" },
+  now: { en: "Now", vi: "Hiện tại" },
+  next: { en: "Next", vi: "Tiếp theo" },
+  live: { en: "Live", vi: "Thời gian thực" },
+  sim: { en: "Simulation", vi: "Mô phỏng" },
+  startDate: { en: "Tour start date", vi: "Ngày khởi hành" },
+  notStarted: { en: "Tour has not started yet", vi: "Tour chưa bắt đầu" },
+  finished: { en: "Tour completed", vi: "Tour đã kết thúc" },
+  nextMeet: { en: "Next meeting time", vi: "Giờ tập trung kế tiếp" },
+  weather: { en: "Weather on the route", vi: "Thời tiết trên hành trình" },
+  listen: { en: "Listen", vi: "Nghe" },
+  stop: { en: "Stop", vi: "Dừng" },
+  enableNotif: { en: "Enable notifications", vi: "Bật thông báo" },
+  notifOn: { en: "Notifications on", vi: "Đã bật thông báo" },
+  progress: { en: "Tour progress", vi: "Tiến độ tour" },
+  meetingSoon: { en: "Meeting in 30 minutes", vi: "Còn 30 phút đến giờ tập trung" },
+  meetingNow: { en: "Meeting time now!", vi: "Đến giờ tập trung!" },
+  humidity: { en: "Humidity", vi: "Độ ẩm" },
+  sample: { en: "Sample data", vi: "Dữ liệu mẫu" },
+  liveData: { en: "Live data", vi: "Dữ liệu trực tiếp" },
+  openMap: { en: "Open map", vi: "Mở bản đồ" },
+  history: { en: "History", vi: "Lịch sử" },
+  legend: { en: "Legends", vi: "Truyền thuyết" },
+  food: { en: "Food", vi: "Ẩm thực" },
+  all: { en: "All", vi: "Tất cả" },
+  done: { en: "Done", vi: "Đã qua" },
+} satisfies Record<string, L>;
+export type UIKey = keyof typeof UI;
+
+type Ctx = {
+  lang: Lang; setLang: (l: Lang) => void;
+  t: (k: UIKey) => string; tr: (l: L) => string;
+  dark: boolean; setDark: (d: boolean) => void;
+  mode: "live" | "sim"; setMode: (m: "live" | "sim") => void;
+  start: string; setStart: (s: string) => void;
+  simOffset: number; setSimOffset: (m: number) => void; // minutes since 00:00 day 1
+  now: number;
+};
+const AppCtx = createContext<Ctx | null>(null);
+
+const todayVN = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+
+export function AppProvider({ children }: { children: ReactNode }) {
+  const [lang, setLang] = useState<Lang>("en");
+  const [dark, setDark] = useState(false);
+  const [mode, setMode] = useState<"live" | "sim">("sim");
+  const [start, setStart] = useState("2026-10-15");
+  const [simOffset, setSimOffset] = useState(10 * 60 + 30);
+  const [tick, setTick] = useState(() => Date.now());
+  const loaded = useRef(false);
+
+  // Restore preferences after hydration
+  useEffect(() => {
+    try {
+      const s = JSON.parse(localStorage.getItem("tour-prefs") || "{}");
+      if (s.lang) setLang(s.lang);
+      if (s.dark) setDark(true);
+      if (s.mode) setMode(s.mode);
+      setStart(s.start || todayVN());
+      if (typeof s.simOffset === "number") setSimOffset(s.simOffset);
+    } catch { /* ignore */ }
+    loaded.current = true;
+  }, []);
+  useEffect(() => {
+    if (loaded.current) localStorage.setItem("tour-prefs", JSON.stringify({ lang, dark, mode, start, simOffset }));
+    document.documentElement.classList.toggle("dark", dark);
+    document.documentElement.lang = lang;
+  }, [lang, dark, mode, start, simOffset]);
+  useEffect(() => { const i = setInterval(() => setTick(Date.now()), 1000); return () => clearInterval(i); }, []);
+
+  const now = mode === "live" ? tick : eventTime(start, { day: 1, time: "00:00" }) + simOffset * 60e3;
+
+  const value = useMemo<Ctx>(() => ({
+    lang, setLang, t: (k) => UI[k][lang], tr: (l) => l[lang],
+    dark, setDark, mode, setMode, start, setStart, simOffset, setSimOffset, now,
+  }), [lang, dark, mode, start, simOffset, now]);
+
+  return <AppCtx.Provider value={value}><AssemblyWatcher ctx={value} />{children}</AppCtx.Provider>;
+}
+
+export function useApp() {
+  const c = useContext(AppCtx);
+  if (!c) throw new Error("useApp outside AppProvider");
+  return c;
+}
+
+/** Derives where the group should be at `now`. */
+export function useProgress() {
+  const { start, now } = useApp();
+  const times = EVENTS.map((ev) => eventTime(start, ev));
+  let idx = -1;
+  times.forEach((t, i) => { if (t <= now) idx = i; });
+  const first = times[0], last = times[times.length - 1];
+  const pct = Math.min(100, Math.max(0, ((now - first) / (last - first)) * 100));
+  const assemblies = EVENTS.map((ev, i) => ({ ev, at: times[i] })).filter((x) => x.ev.assembly);
+  const nextAssembly = assemblies.find((a) => a.at > now);
+  return { idx, current: EVENTS[idx], next: EVENTS[idx + 1], times, pct, status: idx < 0 ? "before" : now > last ? "after" : "during", nextAssembly, assemblies } as const;
+}
+
+/** Fires toasts + browser notifications 30 min before and at each assembly time. */
+function AssemblyWatcher({ ctx }: { ctx: Ctx }) {
+  const fired = useRef(new Set<string>());
+  const prev = useRef<number | null>(null);
+  useEffect(() => {
+    const p = prev.current; prev.current = ctx.now;
+    if (p === null || Math.abs(ctx.now - p) > 3 * 3600e3) return; // skip big jumps
+    for (const ev of EVENTS) {
+      if (!ev.assembly) continue;
+      const at = eventTime(ctx.start, ev);
+      for (const [lead, key] of [[30 * 60e3, "meetingSoon"], [0, "meetingNow"]] as const) {
+        const trigger = at - lead, id = `${ctx.start}-${ev.day}-${ev.time}-${lead}`;
+        if (p < trigger && ctx.now >= trigger && !fired.current.has(id)) {
+          fired.current.add(id);
+          const title = `${ctx.t(key)} · ${ev.time}`;
+          const body = `${ctx.tr(ev.title)} — ${ctx.tr(ev.assembly)}`;
+          toast(title, { description: body, duration: 10000 });
+          if (typeof Notification !== "undefined" && Notification.permission === "granted") new Notification(title, { body });
+        }
+      }
+    }
+  }, [ctx.now]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
+
+/** Read text aloud with the device's built-in voices. */
+export function speak(text: string, lang: Lang, onEnd?: () => void) {
+  if (typeof speechSynthesis === "undefined") return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = lang === "vi" ? "vi-VN" : "en-US";
+  const v = speechSynthesis.getVoices().find((x) => x.lang.toLowerCase().startsWith(lang));
+  if (v) u.voice = v;
+  u.rate = 0.95;
+  u.onend = () => onEnd?.();
+  speechSynthesis.speak(u);
+}
+
+export const fmtCountdown = (ms: number) => {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (d ? `${d}d ` : "") + `${pad(h)}:${pad(m)}:${pad(sec)}`;
+};
