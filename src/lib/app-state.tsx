@@ -1,5 +1,5 @@
 // Global app state: language, theme, live/simulated clock, and assembly alerts.
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { type Context, createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { EVENTS, GUIDE, eventTime, stopById, type L, type Lang } from "@/data/tour";
 
@@ -55,7 +55,9 @@ type Ctx = {
   now: number;
   autoNarrate: boolean; setAutoNarrate: (b: boolean) => void;
 };
-const AppCtx = createContext<Ctx | null>(null);
+// Keep one context instance across hot reloads so providers and consumers always match.
+const g = globalThis as { __tourAppCtx?: Context<Ctx | null> };
+const AppCtx = (g.__tourAppCtx ??= createContext<Ctx | null>(null));
 
 const todayVN = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
 
