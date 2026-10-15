@@ -10,7 +10,7 @@ import hanoi from "@/assets/hanoi.jpg";
 import trangan from "@/assets/trangan.jpg";
 import halong from "@/assets/halong.jpg";
 
-const TourMap = lazy(() => import("@/components/TourMap.client"));
+const TourMap = lazy(() => import("@/components/TourMap"));
 const IMG = { hanoi, trangan, halong };
 
 export const Route = createFileRoute("/map")({
@@ -30,6 +30,7 @@ function MapPage() {
   const { current } = useProgress();
   const [sel, setSel] = useState<Stop | null>(null);
   const labels = useCallback((s: Stop) => tr(s.name), [tr]);
+  const descs = useCallback((s: Stop) => tr(s.desc), [tr]);
 
   return (
     <div className="space-y-4">
@@ -38,7 +39,7 @@ function MapPage() {
         <div className="card-paper relative h-[62vh] overflow-hidden p-0">
           <ClientOnly fallback={<div className="h-full animate-pulse bg-muted" />}>
             <Suspense fallback={<div className="h-full animate-pulse bg-muted" />}>
-              <TourMap currentStopId={current?.stopId} selectedId={sel?.id} onSelect={setSel} labels={labels} />
+              <TourMap currentStopId={current?.stopId} selectedId={sel?.id} onSelect={setSel} labels={labels} descs={descs} missingKey={t("mapKeyMissing")} />
             </Suspense>
           </ClientOnly>
           {sel && (
