@@ -3,7 +3,7 @@ import { BedDouble, Bus, Landmark, Utensils, Users } from "lucide-react";
 import { EVENTS, type EventType } from "@/data/tour";
 import { useApp, useProgress } from "@/lib/app-state";
 import { ClockControls } from "@/components/Shell";
-import { ProgressCard } from "@/components/Widgets";
+import { NarrationPlayer, ProgressCard } from "@/components/Widgets";
 
 export const Route = createFileRoute("/itinerary")({
   head: () => ({
@@ -32,6 +32,7 @@ function Itinerary() {
     <div className="space-y-4">
       <ClockControls />
       <ProgressCard />
+      <NarrationPlayer />
       <div className="grid gap-4 md:grid-cols-2">
         {([1, 2, 3, 4] as const).map((d) => (
           <section key={d} className="card-paper p-5">
@@ -46,7 +47,7 @@ function Itinerary() {
                   <li key={i} className={`relative ${done ? "opacity-55" : ""}`}>
                     <span className={`absolute -left-[27px] top-1 h-3 w-3 rounded-full border-2 border-card ${cur ? "bg-primary ring-4 ring-primary/25" : done ? "bg-muted-foreground" : "bg-border"}`} />
                     <div className="flex items-start gap-2">
-                      <span className="w-12 shrink-0 text-sm font-semibold tabular-nums">{ev.time}</span>
+                      <span className="w-24 shrink-0 text-sm font-semibold tabular-nums">{ev.time}–{ev.end}</span>
                       <I className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                       <div className="text-sm">
                         <div className={cur ? "font-semibold text-primary" : ""}>{tr(ev.title)}</div>

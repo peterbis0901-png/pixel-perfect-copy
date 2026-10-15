@@ -4,7 +4,7 @@ import { BellRing, Check, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { fmtCountdown, useApp, useProgress } from "@/lib/app-state";
 import { ClockControls } from "@/components/Shell";
-import { NextAssembly } from "@/components/Widgets";
+import { NarrationPlayer, NextAssembly } from "@/components/Widgets";
 
 export const Route = createFileRoute("/alerts")({
   head: () => ({
@@ -41,6 +41,7 @@ function Alerts() {
       </div>
       <ClockControls />
       <NextAssembly />
+      <NarrationPlayer />
       <ul className="grid gap-3 md:grid-cols-2">
         {assemblies.map(({ ev, at }, i) => {
           const ms = at - now, past = ms <= 0, soon = !past && ms < 30 * 60e3;
