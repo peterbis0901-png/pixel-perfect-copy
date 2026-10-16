@@ -43,6 +43,14 @@ const UI = {
   play: { en: "Play", vi: "Phát" },
   mapKeyMissing: { en: "Map failed to load.", vi: "Không tải được bản đồ." },
   viewLocation: { en: "View location", vi: "Xem địa điểm" },
+  newTab: { en: "opens Google Maps in a new tab", vi: "mở Google Maps trong thẻ mới" },
+  mapRegion: { en: "Tour route map. Use Tab to move between stops, Enter to open details, Escape to close.", vi: "Bản đồ lộ trình tour. Dùng Tab để chuyển giữa các điểm, Enter để xem chi tiết, Esc để đóng." },
+  mapOffline: { en: "Map tiles can't load (offline?). The route and stops are listed below.", vi: "Không tải được nền bản đồ (mất mạng?). Lộ trình và các điểm dừng được liệt kê bên dưới." },
+  routeList: { en: "Route, in order", vi: "Lộ trình theo thứ tự" },
+  byFlight: { en: "flight", vi: "máy bay" },
+  byRoad: { en: "by road / boat", vi: "đường bộ / tàu" },
+  closePopup: { en: "Close details", vi: "Đóng chi tiết" },
+  stopList: { en: "Tour stops", vi: "Các điểm dừng" },
 } satisfies Record<string, L>;
 export type UIKey = keyof typeof UI;
 

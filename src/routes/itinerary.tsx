@@ -51,7 +51,7 @@ function Itinerary() {
                       <I className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                       <div className="text-sm">
                         <div className={cur ? "font-semibold text-primary" : ""}>{tr(ev.title)}</div>
-                        {ev.stopId && stopById(ev.stopId) && <a href={mapsLink(stopById(ev.stopId)!)} target="_blank" rel="noopener noreferrer" className="mt-0.5 mr-2 inline-flex items-center gap-1 text-xs text-primary underline-offset-2 hover:underline"><MapPin className="h-3 w-3" />{t("viewLocation")}</a>}
+                        {ev.stopId && stopById(ev.stopId) && <a href={mapsLink(stopById(ev.stopId)!)} target="_blank" rel="noopener noreferrer" aria-label={`${t("viewLocation")}: ${tr(stopById(ev.stopId)!.name)} (${t("newTab")})`} className="mt-0.5 mr-2 inline-flex items-center gap-1 text-xs text-primary underline-offset-2 hover:underline"><MapPin className="h-3 w-3" aria-hidden="true" />{t("viewLocation")}</a>}
                         {ev.assembly && <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-secondary"><Users className="h-3 w-3" />{tr(ev.assembly)}</div>}
                       </div>
                       {cur && <span className="chip ml-auto">{t("now")}</span>}
