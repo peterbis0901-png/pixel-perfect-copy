@@ -143,3 +143,6 @@
 .tour-pin span { transform: rotate(45deg); line-height: 1; }
 .tour-here { width: 56px; height: 56px; border-radius: 50%; background: var(--lacquer); animation: here-pulse 1.8s ease-out infinite; }
 .gm-style { font-family: var(--font-sans); }
+
+/* Keyboard focus ring for Leaflet markers */
+.tour-pin:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; border-radius: 6px; }
