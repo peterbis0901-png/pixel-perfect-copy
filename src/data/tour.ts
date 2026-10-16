@@ -120,3 +120,6 @@ export function eventTime(start: string, ev: Pick<TourEvent, "day" | "time">) {
 }
 
 export const stopById = (id?: string) => STOPS.find((s) => s.id === id);
+
+/** External Google Maps link for a stop (opens in a new tab; no API key needed). */
+export const mapsLink = (s: Pick<Stop, "lat" | "lng">) => `https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`;

@@ -41,7 +41,8 @@ const UI = {
   nowPlaying: { en: "Now playing", vi: "Đang phát" },
   upNext: { en: "Scheduled narrations", vi: "Thuyết minh theo lịch" },
   play: { en: "Play", vi: "Phát" },
-  mapKeyMissing: { en: "Google Maps key missing — set VITE_GOOGLE_MAPS_API_KEY or connect Google Maps.", vi: "Thiếu khóa Google Maps — đặt VITE_GOOGLE_MAPS_API_KEY hoặc kết nối Google Maps." },
+  mapKeyMissing: { en: "Map failed to load.", vi: "Không tải được bản đồ." },
+  viewLocation: { en: "View location", vi: "Xem địa điểm" },
 } satisfies Record<string, L>;
 export type UIKey = keyof typeof UI;
 

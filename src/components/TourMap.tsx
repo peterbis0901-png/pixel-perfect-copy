@@ -1,112 +1,87 @@
-// Google Maps tour map. The Maps JS API script is injected in useEffect, so SSR never touches `google`.
-/* eslint-disable @typescript-eslint/no-explicit-any */
+// Leaflet + OpenStreetMap tour map. Leaflet is imported inside useEffect, so SSR never touches `window`.
 import { useEffect, useRef, useState } from "react";
-import { FLIGHT_LEGS, STOPS, stopById, type Stop } from "@/data/tour";
+import type * as Leaflet from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { FLIGHT_LEGS, STOPS, mapsLink, stopById, type Stop } from "@/data/tour";
 
-type Props = { currentStopId?: string | undefined; selectedId?: string | undefined; onSelect: (s: Stop) => void; labels: (s: Stop) => string; descs: (s: Stop) => string; missingKey: string };
+type Props = { currentStopId?: string | undefined; selectedId?: string | undefined; onSelect: (s: Stop) => void; labels: (s: Stop) => string; descs: (s: Stop) => string; missingKey: string; viewLabel: string };
 
-const env = import.meta.env as Record<string, string | undefined>;
-const KEY = env["VITE_GOOGLE_MAPS_API_KEY"] || env["VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY"];
-const CHANNEL = env["VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID"];
+const pinHtml = (n: number, color: string) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="44" viewBox="0 0 30 39"><path d="M15 38C15 38 28 23 28 14A13 13 0 0 0 2 14C2 23 15 38 15 38Z" fill="${color}" stroke="white" stroke-width="2"/><text x="15" y="18" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="700" fill="white">${n}</text></svg>`;
 
-let loader: Promise<any> | null = null;
-function loadMaps(): Promise<any> {
-  const w = window as any;
-  if (w.google?.maps?.Map) return Promise.resolve(w.google);
-  if (loader) return loader;
-  loader = new Promise((resolve, reject) => {
-    w.__initTourMap = () => resolve(w.google);
-    const s = document.createElement("script");
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${KEY}&loading=async&callback=__initTourMap&v=weekly${CHANNEL ? `&channel=${CHANNEL}` : ""}`;
-    s.async = true;
-    s.onerror = () => { loader = null; reject(new Error("Google Maps failed to load")); };
-    document.head.appendChild(s);
-  });
-  return loader;
-}
-
-const pinSvg = (n: number, color: string, big: boolean) => {
-  const sz = big ? 42 : 34;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${sz}" height="${sz * 1.3}" viewBox="0 0 30 39"><path d="M15 38C15 38 28 23 28 14A13 13 0 0 0 2 14C2 23 15 38 15 38Z" fill="${color}" stroke="white" stroke-width="2"/><text x="15" y="18" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="700" fill="white">${n}</text></svg>`;
-  return { url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`, sz };
-};
-
-export default function TourMap({ currentStopId, selectedId, onSelect, labels, descs, missingKey }: Props) {
+export default function TourMap({ currentStopId, selectedId, onSelect, labels, descs, missingKey, viewLabel }: Props) {
   const el = useRef<HTMLDivElement>(null);
-  const map = useRef<any>(null);
-  const markers = useRef<Record<string, any>>({});
-  const info = useRef<any>(null);
-  const here = useRef<any>(null);
+  const L = useRef<typeof Leaflet | null>(null);
+  const map = useRef<Leaflet.Map | null>(null);
+  const markers = useRef<Record<string, Leaflet.Marker>>({});
+  const here = useRef<Leaflet.CircleMarker | null>(null);
   const [ready, setReady] = useState(false);
-  const [err, setErr] = useState<string | null>(KEY ? null : missingKey);
+  const [err, setErr] = useState<string | null>(null);
+
+  const popup = (s: Stop) => {
+    const box = document.createElement("div");
+    box.style.maxWidth = "220px";
+    const h = document.createElement("strong"); h.textContent = labels(s);
+    const p = document.createElement("div"); p.style.fontSize = "12px"; p.style.margin = "4px 0 6px"; p.textContent = descs(s);
+    const a = document.createElement("a"); a.href = mapsLink(s); a.target = "_blank"; a.rel = "noopener noreferrer";
+    a.textContent = `📍 ${viewLabel}`; a.style.fontWeight = "600"; a.style.fontSize = "12px";
+    box.append(h, p, a);
+    return box;
+  };
 
   useEffect(() => {
-    if (!KEY || !el.current) return;
     let cancelled = false;
-    loadMaps().then((g) => {
+    import("leaflet").then((mod) => {
+      const Lf = (mod as unknown as { default?: typeof Leaflet }).default ?? (mod as unknown as typeof Leaflet);
       if (cancelled || !el.current) return;
+      L.current = Lf;
       const css = getComputedStyle(document.documentElement);
-      const raw = (d: number) => css.getPropertyValue(`--day-${d}`).trim() || "#b33";
-      // Resolve CSS colors (e.g. oklch) to rgb for Google Maps
       const probe = document.createElement("span"); document.body.appendChild(probe);
-      const color = (d: number) => { probe.style.color = raw(d); return getComputedStyle(probe).color; };
-      const m = new g.maps.Map(el.current, { center: { lat: 21, lng: 106.2 }, zoom: 8, clickableIcons: false, streetViewControl: false, mapTypeControl: true, fullscreenControl: true, gestureHandling: "greedy" });
+      const color = (d: number) => { probe.style.color = css.getPropertyValue(`--day-${d}`).trim() || "#b33"; return getComputedStyle(probe).color; };
+      const m = Lf.map(el.current, { center: [21, 106.2], zoom: 8 });
+      Lf.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap contributors" }).addTo(m);
       map.current = m;
-      info.current = new g.maps.InfoWindow();
       const isFlight = (a: string, b: string) => FLIGHT_LEGS.some(([x, y]) => x === a && y === b);
       for (let i = 1; i < STOPS.length; i++) {
-        const a = STOPS[i - 1]!, b = STOPS[i]!, flight = isFlight(a.id, b.id), c = color(b.day);
-        new g.maps.Polyline({
-          map: m, path: [{ lat: a.lat, lng: a.lng }, { lat: b.lat, lng: b.lng }], geodesic: true,
-          strokeColor: c, strokeOpacity: flight ? 0 : 0.9, strokeWeight: 4,
-          icons: flight ? [{ icon: { path: "M 0,-1 0,1", strokeOpacity: 0.9, strokeColor: c, scale: 3 }, offset: "0", repeat: "14px" }] : [{ icon: { path: g.maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 2.5, strokeColor: c, fillColor: c, fillOpacity: 1 }, offset: "55%" }],
-        });
+        const a = STOPS[i - 1]!, b = STOPS[i]!, flight = isFlight(a.id, b.id);
+        Lf.polyline([[a.lat, a.lng], [b.lat, b.lng]], { color: color(b.day), weight: 4, opacity: 0.9, dashArray: flight ? "8 10" : undefined }).addTo(m);
       }
-      const bounds = new g.maps.LatLngBounds();
+      const bounds = Lf.latLngBounds([]);
       STOPS.forEach((s, i) => {
-        const p = pinSvg(i + 1, color(s.day), false);
-        const mk = new g.maps.Marker({ map: m, position: { lat: s.lat, lng: s.lng }, title: labels(s), icon: { url: p.url, scaledSize: new g.maps.Size(p.sz, p.sz * 1.3), anchor: new g.maps.Point(p.sz / 2, p.sz * 1.3) }, zIndex: 10 + i });
-        mk.addListener("click", () => onSelect(s));
+        const icon = Lf.divIcon({ html: pinHtml(i + 1, color(s.day)), className: "", iconSize: [34, 44], iconAnchor: [17, 44], popupAnchor: [0, -40] });
+        const mk = Lf.marker([s.lat, s.lng], { icon, title: labels(s), zIndexOffset: 10 + i }).addTo(m);
+        mk.on("click", () => onSelect(s));
         markers.current[s.id] = mk;
-        if (s.city !== "hcm") bounds.extend({ lat: s.lat, lng: s.lng });
+        if (s.city !== "hcm") bounds.extend([s.lat, s.lng]);
       });
       probe.remove();
-      m.fitBounds(bounds, 40);
+      m.fitBounds(bounds, { padding: [40, 40] });
       setReady(true);
-    }).catch((e) => setErr(String(e.message || e)));
-    return () => { cancelled = true; };
+    }).catch(() => setErr(missingKey));
+    return () => { cancelled = true; map.current?.remove(); map.current = null; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => { STOPS.forEach((s) => markers.current[s.id]?.setTitle(labels(s))); }, [labels, ready]);
 
   // "Group is here" pulse
   useEffect(() => {
-    const g = (window as any).google; if (!ready || !g) return;
-    here.current?.setMap(null);
+    const Lf = L.current; if (!ready || !Lf || !map.current) return;
+    here.current?.remove();
     const s = stopById(currentStopId); if (!s) return;
-    here.current = new g.maps.Marker({ map: map.current, position: { lat: s.lat, lng: s.lng }, clickable: false, zIndex: 1, icon: { path: g.maps.SymbolPath.CIRCLE, scale: 22, fillColor: "#c0392b", fillOpacity: 0.3, strokeColor: "#c0392b", strokeWeight: 2 } });
+    here.current = Lf.circleMarker([s.lat, s.lng], { radius: 22, color: "#c0392b", weight: 2, fillColor: "#c0392b", fillOpacity: 0.3, interactive: false }).addTo(map.current);
   }, [currentStopId, ready]);
 
-  // Selected stop: smooth pan/zoom + InfoWindow
+  // Selected stop: fly to + popup
   useEffect(() => {
     const s = stopById(selectedId), m = map.current;
     if (!ready || !m) return;
-    if (!s) { info.current?.close(); return; }
-    m.panTo({ lat: s.lat, lng: s.lng });
+    if (!s) { m.closePopup(); return; }
     const target = s.city === "hcm" ? 11 : 14;
-    if (m.getZoom() < target) setTimeout(() => m.setZoom(target), 350);
-    const box = document.createElement("div");
-    box.style.maxWidth = "220px"; box.style.color = "#222";
-    const h = document.createElement("strong"); h.textContent = labels(s);
-    const p = document.createElement("div"); p.style.fontSize = "12px"; p.style.marginTop = "4px"; p.textContent = descs(s);
-    box.append(h, p);
-    info.current.setContent(box);
-    info.current.open({ map: m, anchor: markers.current[s.id] });
-  }, [selectedId, ready, labels, descs]);
+    m.flyTo([s.lat, s.lng], Math.max(m.getZoom(), target), { duration: 0.8 });
+    markers.current[s.id]?.bindPopup(popup(s)).openPopup();
+  }, [selectedId, ready, labels, descs, viewLabel]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="relative h-full w-full">
-      <div ref={el} className="h-full w-full" />
+      <div ref={el} className="z-0 h-full w-full" />
       {err && <div className="absolute inset-0 grid place-items-center bg-muted p-6 text-center text-sm text-muted-foreground">{err}</div>}
     </div>
   );
