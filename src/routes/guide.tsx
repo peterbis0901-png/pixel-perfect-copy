@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { GUIDE, type GuideItem } from "@/data/tour";
 import { useApp } from "@/lib/app-state";
@@ -12,25 +13,27 @@ const IMG = { hanoi, trangan, halong };
 export const Route = createFileRoute("/guide")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Bilingual Audio Guide – Di Sản Bắc Bộ" },
       { name: "description", content: "History, legends and local food of Hà Nội, Ninh Bình and Hạ Long in English and Vietnamese, with read-aloud." },
       { property: "og:title", content: "Bilingual Audio Guide – Di Sản Bắc Bộ" },
       { property: "og:description", content: "Thăng Long history, Hồ Gươm legend, Phở and Chả cá — in English and Vietnamese." },
     ],
   }),
-  component: Guide,
+  component: GuidePage,
 });
 
-function Guide() {
+export function GuideContent() {
   const { t, tr, lang, setLang } = useApp();
   const [kind, setKind] = useState<"all" | GuideItem["kind"]>("all");
   const items = GUIDE.filter((g) => kind === "all" || g.kind === kind);
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-2">
-        <h1 className="mr-auto text-4xl">{t("guide")}</h1>
+        <h2 className="mr-auto text-3xl">{t("guide")}</h2>
         {(["all", "history", "legend", "food"] as const).map((k) => (
-          <button key={k} onClick={() => setKind(k)} className={kind === k ? "btn-primary" : "btn-ghost"}>{t(k)}</button>
+          <Button variant="ghost" key={k} onClick={() => setKind(k)} className={kind === k ? "btn-primary" : "btn-ghost"}>{t(k)}</Button>
         ))}
       </div>
       <div className="grid gap-5 md:grid-cols-2">
@@ -43,7 +46,7 @@ function Guide() {
               <p className="mt-2 leading-relaxed text-muted-foreground">{tr(g.body)}</p>
               <div className="mt-4 flex gap-2">
                 <ListenButton text={`${tr(g.title)}. ${tr(g.body)}`} />
-                <button className="btn-ghost" onClick={() => setLang(lang === "en" ? "vi" : "en")}>⇄ {lang === "en" ? "Tiếng Việt" : "English"}</button>
+                <Button variant="ghost" className="btn-ghost" onClick={() => setLang(lang === "en" ? "vi" : "en")}>⇄ {lang === "en" ? "Tiếng Việt" : "English"}</Button>
               </div>
             </div>
           </article>
@@ -52,3 +55,5 @@ function Guide() {
     </div>
   );
 }
+
+function GuidePage() { return <GuideContent />; }

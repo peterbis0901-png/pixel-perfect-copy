@@ -12,7 +12,9 @@
 # Agent rules
 
 - All tour content (stops, schedule, guide text) lives in `src/data/tour.ts` as bilingual `{en, vi}` objects — single source of truth, no database needed.
-- Narration and arrival alerts are driven by `narrate`/`stopId` on schedule events, fired by the watcher in app-state — never by page components, so they work on every page.
+- Arrival alerts are driven by `stopId` on schedule events in the global watcher; `narrate` only supplies manual playback choices, so clock changes never speak.
+- The predefined departure date and day titles live in tour data; the clock derives progression and never restores an editable departure date from preferences.
+- Guide content and meetup controls are shared with Itinerary and Overview; legacy URLs remain accessible to avoid breaking links.
 - Global language/theme/clock state lives in `src/lib/app-state.tsx`; the "current position" is always derived from the clock + schedule, never stored.
 - The map uses Leaflet + OpenStreetMap tiles, imported dynamically inside useEffect so SSR never touches `window`; external "View location" links use the Google Maps search URL from `mapsLink()` in tour.ts.
 - Weather comes from Open-Meteo through a server function with sample-data fallback — keyless, so no secrets are required.
