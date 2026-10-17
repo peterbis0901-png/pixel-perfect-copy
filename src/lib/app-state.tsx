@@ -1,7 +1,7 @@
 // Global app state: language, theme, live/simulated clock, and assembly alerts.
 import { type Context, createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { EVENTS, GUIDE, eventTime, stopById, type L, type Lang } from "@/data/tour";
+import { EVENTS, TOUR_START_DATE, eventTime, stopById, type L, type Lang } from "@/data/tour";
 
 const UI = {
   overview: { en: "Overview", vi: "Tổng quan" },
@@ -36,8 +36,10 @@ const UI = {
   all: { en: "All", vi: "Tất cả" },
   done: { en: "Done", vi: "Đã qua" },
   arrived: { en: "Arriving at", vi: "Đang đến" },
-  narration: { en: "Tour narration", vi: "Thuyết minh tự động" },
-  autoNarrate: { en: "Auto-play on schedule", vi: "Tự phát theo lịch" },
+  narration: { en: "Tour narration", vi: "Thuyết minh hành trình" },
+  estimated: { en: "Estimated Itinerary", vi: "Dự kiến hành trình" },
+  timingNote: { en: "Expected activity times · subject to traffic and delays", vi: "Khung giờ dự kiến · có thể thay đổi do giao thông và chậm trễ" },
+  notificationsUnsupported: { en: "Notifications are not supported on this device", vi: "Thiết bị này không hỗ trợ thông báo" },
   nowPlaying: { en: "Now playing", vi: "Đang phát" },
   upNext: { en: "Scheduled narrations", vi: "Thuyết minh theo lịch" },
   play: { en: "Play", vi: "Phát" },
@@ -59,24 +61,20 @@ type Ctx = {
   t: (k: UIKey) => string; tr: (l: L) => string;
   dark: boolean; setDark: (d: boolean) => void;
   mode: "live" | "sim"; setMode: (m: "live" | "sim") => void;
-  start: string; setStart: (s: string) => void;
+  start: string;
   simOffset: number; setSimOffset: (m: number) => void; // minutes since 00:00 day 1
   now: number;
-  autoNarrate: boolean; setAutoNarrate: (b: boolean) => void;
 };
 // Keep one context instance across hot reloads so providers and consumers always match.
 const g = globalThis as { __tourAppCtx?: Context<Ctx | null> };
 const AppCtx = (g.__tourAppCtx ??= createContext<Ctx | null>(null));
 
-const todayVN = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
-
 export function AppProvider({ children }: { children: ReactNode }) {
   const [lang, setLang] = useState<Lang>("en");
   const [dark, setDark] = useState(false);
   const [mode, setMode] = useState<"live" | "sim">("sim");
-  const [start, setStart] = useState("2026-10-15");
+  const start = TOUR_START_DATE;
   const [simOffset, setSimOffset] = useState(10 * 60 + 30);
-  const [autoNarrate, setAutoNarrate] = useState(true);
   const [tick, setTick] = useState(() => Date.now());
   const loaded = useRef(false);
 
@@ -87,25 +85,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (s.lang) setLang(s.lang);
       if (s.dark) setDark(true);
       if (s.mode) setMode(s.mode);
-      setStart(s.start || todayVN());
       if (typeof s.simOffset === "number") setSimOffset(s.simOffset);
-      if (typeof s.autoNarrate === "boolean") setAutoNarrate(s.autoNarrate);
     } catch { /* ignore */ }
     loaded.current = true;
   }, []);
   useEffect(() => {
-    if (loaded.current) localStorage.setItem("tour-prefs", JSON.stringify({ lang, dark, mode, start, simOffset, autoNarrate }));
+    if (loaded.current) localStorage.setItem("tour-prefs", JSON.stringify({ lang, dark, mode, start, simOffset }));
     document.documentElement.classList.toggle("dark", dark);
     document.documentElement.lang = lang;
-  }, [lang, dark, mode, start, simOffset, autoNarrate]);
+  }, [lang, dark, mode, start, simOffset]);
   useEffect(() => { const i = setInterval(() => setTick(Date.now()), 1000); return () => clearInterval(i); }, []);
 
   const now = mode === "live" ? tick : eventTime(start, { day: 1, time: "00:00" }) + simOffset * 60e3;
 
   const value = useMemo<Ctx>(() => ({
     lang, setLang, t: (k) => UI[k][lang], tr: (l) => l[lang],
-    dark, setDark, mode, setMode, start, setStart, simOffset, setSimOffset, now, autoNarrate, setAutoNarrate,
-  }), [lang, dark, mode, start, simOffset, now, autoNarrate]);
+    dark, setDark, mode, setMode, start, simOffset, setSimOffset, now,
+  }), [lang, dark, mode, start, simOffset, now]);
 
   return <AppCtx.Provider value={value}><AssemblyWatcher ctx={value} />{children}</AppCtx.Provider>;
 }
@@ -122,9 +118,9 @@ export function useProgress() {
   const times = EVENTS.map((ev) => eventTime(start, ev));
   let idx = -1;
   times.forEach((t, i) => { if (t <= now) idx = i; });
-  const first = times[0]!, last = times[times.length - 1]!;
-  const pct = Math.min(100, Math.max(0, ((now - first) / (last - first)) * 100));
-  const assemblies = EVENTS.map((ev, i) => ({ ev, at: times[i]! })).filter((x) => x.ev.assembly);
+  const first = times[0] ?? now, last = times[times.length - 1] ?? now;
+  const pct = Math.min(100, Math.max(0, ((now - first) / Math.max(1, last - first)) * 100));
+  const assemblies = EVENTS.map((ev, i) => ({ ev, at: times[i] ?? eventTime(start, ev) })).filter((x) => x.ev.assembly);
   const nextAssembly = assemblies.find((a) => a.at > now);
   return { idx, current: EVENTS[idx], next: EVENTS[idx + 1], times, pct, status: idx < 0 ? "before" : now > last ? "after" : "during", nextAssembly, assemblies } as const;
 }
@@ -150,7 +146,7 @@ function AssemblyWatcher({ ctx }: { ctx: Ctx }) {
         }
       }
     }
-    // Arrival alerts + scheduled narration at the start of each time slot
+    // Arrival alerts at the start of each time slot; narration is manual-only.
     EVENTS.forEach((ev, i) => {
       const at = eventTime(ctx.start, ev), id = `${ctx.start}-slot-${i}`;
       if (!(p < at && ctx.now >= at) || fired.current.has(id)) return;
@@ -161,19 +157,13 @@ function AssemblyWatcher({ ctx }: { ctx: Ctx }) {
         toast.success(title, { description: `${ev.time} · ${ctx.tr(ev.title)}`, duration: 8000 });
         if (typeof Notification !== "undefined" && Notification.permission === "granted") new Notification(title, { body: ctx.tr(stop.desc) });
       }
-      const items = (ev.narrate ?? []).map((g) => GUIDE.find((x) => x.id === g)).filter((x) => !!x);
-      if (items.length) {
-        const text = items.map((x) => `${ctx.tr(x.title)}. ${ctx.tr(x.body)}`).join(" ");
-        const label = items.map((x) => ctx.tr(x.title)).join(" · ");
-        if (ctx.autoNarrate) { speak(text, ctx.lang); emitNarration(label); }
-        toast(`🎧 ${ctx.t("narration")}`, { description: label, duration: 10000, action: ctx.autoNarrate ? undefined : { label: ctx.t("play"), onClick: () => { speak(text, ctx.lang); emitNarration(label); } } });
-      }
+
     });
   }, [ctx.now]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
 }
 
-/** Tiny pub/sub so the narration player can show what the scheduler started. */
+/** Shared manual narration playback status. */
 type NarrListener = (label: string | null) => void;
 const narrListeners = new Set<NarrListener>();
 export function emitNarration(label: string | null) { narrListeners.forEach((f) => f(label)); }

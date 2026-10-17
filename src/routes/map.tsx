@@ -16,6 +16,8 @@ const IMG = { hanoi, trangan, halong };
 export const Route = createFileRoute("/map")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Tour Map – Di Sản Bắc Bộ" },
       { name: "description", content: "Interactive route map from Tân Sơn Nhất to Hà Nội, Tràng An and Hạ Long Bay with every stop." },
       { property: "og:title", content: "Tour Map – Di Sản Bắc Bộ" },

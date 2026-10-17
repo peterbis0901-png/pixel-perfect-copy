@@ -1,13 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { Bell, BookOpen, CalendarDays, Compass, Map, Moon, Sun } from "lucide-react";
+import { CalendarDays, Compass, Map, Moon, Sun } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useApp, type UIKey } from "@/lib/app-state";
 
-const NAV: { to: "/" | "/map" | "/itinerary" | "/guide" | "/alerts"; k: UIKey; I: typeof Map }[] = [
+const NAV: { to: "/" | "/map" | "/itinerary"; k: UIKey; I: typeof Map }[] = [
   { to: "/", k: "overview", I: Compass },
   { to: "/map", k: "map", I: Map },
   { to: "/itinerary", k: "itinerary", I: CalendarDays },
-  { to: "/guide", k: "guide", I: BookOpen },
-  { to: "/alerts", k: "alerts", I: Bell },
 ];
 
 export function Header() {
@@ -28,14 +27,14 @@ export function Header() {
           <div className="ml-auto flex items-center gap-2">
             <div className="flex rounded-full border border-border p-0.5 text-xs font-semibold">
               {(["vi", "en"] as const).map((l) => (
-                <button key={l} onClick={() => setLang(l)} className={`rounded-full px-2.5 py-1 ${lang === l ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>{l.toUpperCase()}</button>
+                <Button variant="ghost" key={l} onClick={() => setLang(l)} className={`rounded-full px-2.5 py-1 ${lang === l ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>{l.toUpperCase()}</Button>
               ))}
             </div>
-            <button aria-label="Toggle theme" onClick={() => setDark(!dark)} className="rounded-full border border-border p-2">{dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}</button>
+            <Button variant="ghost" aria-label="Toggle theme" onClick={() => setDark(!dark)} className="rounded-full border border-border p-2">{dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}</Button>
           </div>
         </div>
       </header>
-      <nav className="fixed inset-x-0 bottom-0 z-[1000] grid grid-cols-5 border-t border-border bg-background/95 backdrop-blur md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-[1000] grid grid-cols-3 border-t border-border bg-background/95 backdrop-blur md:hidden">
         {NAV.map(({ to, k, I }) => (
           <Link key={to} to={to} className="flex flex-col items-center gap-0.5 py-2 text-[11px] text-muted-foreground" activeProps={{ className: "text-primary" }} activeOptions={{ exact: true }}>
             <I className="h-5 w-5" />{t(k)}
@@ -48,18 +47,18 @@ export function Header() {
 
 /** Live / simulation clock controls */
 export function ClockControls() {
-  const { t, mode, setMode, start, setStart, simOffset, setSimOffset, now, lang } = useApp();
+  const { t, mode, setMode, start, simOffset, setSimOffset, now, lang } = useApp();
   const day = Math.floor(simOffset / 1440) + 1, hm = simOffset % 1440;
   return (
     <section className="card-paper flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
       <div className="flex rounded-full border border-border p-0.5 text-xs font-medium">
         {(["live", "sim"] as const).map((m) => (
-          <button key={m} onClick={() => setMode(m)} className={`rounded-full px-3 py-1 ${mode === m ? "bg-secondary text-secondary-foreground" : "text-muted-foreground"}`}>{t(m)}</button>
+          <Button variant="ghost" key={m} onClick={() => setMode(m)} className={`rounded-full px-3 py-1 ${mode === m ? "bg-secondary text-secondary-foreground" : "text-muted-foreground"}`}>{t(m)}</Button>
         ))}
       </div>
       <label className="flex items-center gap-2 text-sm text-muted-foreground">
         {t("startDate")}
-        <input type="date" value={start} onChange={(e) => e.target.value && setStart(e.target.value)} className="rounded-md border border-input bg-card px-2 py-1 text-foreground" />
+        <input type="date" value={start} disabled className="rounded-md border border-input bg-card px-2 py-1 text-foreground" />
       </label>
       {mode === "sim" ? (
         <div className="flex flex-1 items-center gap-3">

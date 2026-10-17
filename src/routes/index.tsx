@@ -2,11 +2,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import halong from "@/assets/halong.jpg";
 import { useApp } from "@/lib/app-state";
 import { ClockControls } from "@/components/Shell";
-import { NextAssembly, ProgressCard, WeatherWidget } from "@/components/Widgets";
+import { MeetingSection, NextAssembly, ProgressCard, WeatherWidget } from "@/components/Widgets";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Di Sản Bắc Bộ – Heritage Tour Companion" },
       { name: "description", content: "Live progress, meeting times and weather for the 4-day HCM – Hà Nội – Ninh Bình – Hạ Long heritage tour." },
       { property: "og:title", content: "Di Sản Bắc Bộ – Heritage Tour Companion" },
@@ -34,6 +36,7 @@ function Index() {
         <ProgressCard />
         <NextAssembly />
       </div>
+      <MeetingSection />
       <WeatherWidget />
     </div>
   );
