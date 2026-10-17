@@ -2,6 +2,14 @@
 export type L = { en: string; vi: string };
 export type Lang = keyof L;
 
+export const TOUR_START_DATE = "2026-10-15";
+export const DAY_TITLES = {
+  1: { en: "SGN → Hà Nội · Capital heritage", vi: "SGN → Hà Nội · Di sản Thủ đô" },
+  2: { en: "Ninh Bình · Tràng An → Hạ Long", vi: "Ninh Bình · Tràng An → Hạ Long" },
+  3: { en: "Hạ Long Bay cruise → Hà Nội", vi: "Du thuyền vịnh Hạ Long → Hà Nội" },
+  4: { en: "Old Quarter → SGN", vi: "Phố cổ → SGN" },
+};
+
 export type Stop = {
   id: string;
   name: L;
@@ -43,7 +51,7 @@ export type TourEvent = {
   title: L;
   stopId?: string | undefined;
   assembly?: L | undefined; // set when this is a group meeting time
-  narrate?: string[] | undefined; // GUIDE ids narrated when this slot starts
+  narrate?: string[] | undefined; // GUIDE ids available for manual playback in this slot
 };
 
 const e = (day: TourEvent["day"], time: string, type: EventType, en: string, vi: string, stopId?: string, assembly?: L, narrate?: string[]) => ({ day, time, type, title: { en, vi }, stopId, assembly, narrate });
@@ -64,7 +72,7 @@ const RAW = [
   e(2, "06:30", "meal", "Hotel breakfast", "Ăn sáng tại khách sạn", "citadel"),
   e(2, "07:30", "transport", "Depart hotel for Ninh Bình", "Rời khách sạn đi Ninh Bình", "citadel", { en: "Lobby – bring luggage, check out", vi: "Sảnh khách sạn – mang hành lý, trả phòng" }),
   e(2, "09:30", "activity", "Trang An sampan boat tour", "Đi đò tham quan Tràng An", "trangan", { en: "Trang An wharf – 4 guests per boat", vi: "Bến thuyền Tràng An – 4 khách/đò" }, ["trangan"]),
-  e(2, "12:30", "meal", "Lunch – Cơm cháy & mountain goat", "Ăn trưa – Cơm cháy dê núi", "trangan", undefined, ["comchay"]),
+  e(2, "12:30", "meal", "Lunch – Ninh Bình crispy rice & goat dishes", "Ăn trưa – Cơm cháy dê núi Ninh Bình", "trangan", undefined, ["comchay"]),
   e(2, "14:00", "transport", "Coach to Hạ Long", "Di chuyển đi Hạ Long", "trangan", { en: "Restaurant car park", vi: "Bãi xe nhà hàng" }),
   e(2, "18:00", "hotel", "Check in – A25 Hotel 3★, Hạ Long", "Nhận phòng – Khách sạn A25 3★, Hạ Long", "tuanchau"),
   e(2, "19:00", "meal", "Seafood dinner", "Ăn tối hải sản", "tuanchau"),
@@ -109,7 +117,7 @@ export const GUIDE: GuideItem[] = [
   { id: "trangan", kind: "history", img: "trangan", title: { en: "Tràng An & the ancient capital Hoa Lư", vi: "Tràng An & cố đô Hoa Lư" }, body: { en: "Ninh Bình was Vietnam's capital under the Đinh and Early Lê dynasties (968–1009). Tràng An's karst towers, caves and wetlands hold traces of human life over 30,000 years old — it became Vietnam's first mixed natural and cultural UNESCO site in 2014.", vi: "Ninh Bình là kinh đô thời Đinh và Tiền Lê (968–1009). Các núi đá vôi, hang động và đầm nước Tràng An lưu dấu con người hơn 30.000 năm — năm 2014 trở thành di sản hỗn hợp đầu tiên của Việt Nam." } },
   { id: "pho", kind: "food", title: { en: "Phở Hà Nội", vi: "Phở Hà Nội" }, body: { en: "Clear beef broth simmered for hours with charred ginger, onion, star anise and cinnamon, poured over flat rice noodles and thin slices of beef. Hanoians eat it for breakfast — try Phở Bát Đàn or Phở Thìn.", vi: "Nước dùng bò trong, ninh nhiều giờ với gừng, hành nướng, hoa hồi và quế, chan lên bánh phở và thịt bò thái mỏng. Người Hà Nội ăn phở buổi sáng — hãy thử Phở Bát Đàn hay Phở Thìn." } },
   { id: "chaca", kind: "food", title: { en: "Chả cá Lã Vọng", vi: "Chả cá Lã Vọng" }, body: { en: "Turmeric-marinated fish sizzled at your table with heaps of dill and spring onion, eaten with rice vermicelli, peanuts and shrimp paste. So famous the street was renamed Chả Cá.", vi: "Cá ướp nghệ rán ngay tại bàn cùng thì là và hành, ăn kèm bún, lạc rang và mắm tôm. Nổi tiếng đến mức con phố được đặt tên là phố Chả Cá." } },
-  { id: "comchay", kind: "food", img: "trangan", title: { en: "Cơm cháy & mountain goat", vi: "Cơm cháy dê núi Ninh Bình" }, body: { en: "Crispy scorched-rice crackers topped with a savoury meat sauce, alongside the region's free-ranging mountain goat — served rare with lemongrass and herbs, or stir-fried.", vi: "Cơm cháy giòn rụm chan nước sốt thịt, ăn cùng đặc sản dê núi thả trên núi đá — tái chanh sả lá mơ hoặc xào lăn." } },
+  { id: "comchay", kind: "food", img: "trangan", title: { en: "Ninh Bình crispy rice & goat dishes", vi: "Cơm cháy dê núi Ninh Bình" }, body: { en: "Crispy scorched-rice crackers topped with a savoury meat sauce, alongside the region's free-range goat dishes — served rare with lemongrass and herbs, or stir-fried.", vi: "Cơm cháy giòn rụm chan nước sốt thịt, ăn cùng đặc sản dê núi thả trên núi đá — tái chanh sả lá mơ hoặc xào lăn." } },
 ];
 
 /** Absolute timestamp of an event given the tour's first day (YYYY-MM-DD). Vietnam is UTC+7. */
